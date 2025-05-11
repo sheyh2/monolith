@@ -2,7 +2,6 @@ import numpy as np
 
 np.float = float
 from PIL import Image
-from datetime import datetime
 import os
 import face_recognition
 import torch
@@ -18,7 +17,6 @@ from ultralytics import RTDETR
 
 # Initialize all models
 age_estimator = AgeEstimator()
-# face_id = FaceRecognizer()
 gender_estimator = GenderEstimator()
 emotion_estimator = EmotionEstimator()
 
@@ -212,23 +210,16 @@ class FaceProcessor:
             print(f"Error analyzing face for track {track_id}: {e}")
             return None, None, None
 
-    def process_frame(self, frame, output=True):
+    def process_frame(self, frame):
         """
         Process a video frame for face detection, tracking, and analysis
 
         Args:
             frame: Video frame to process
-            output: If True, visualize detection on frame and return it,
-                    if False, only process data and save to database without modifying the frame
 
         Returns:
             Modified frame if output=True, original frame if output=False
         """
-        # Создаем копию кадра для обработки, чтобы не изменять оригинал если output=False
-        if output:
-            display_frame = frame.copy()
-        else:
-            display_frame = None
 
         # Increment frame counter
         self.frame_count += 1
@@ -267,161 +258,108 @@ class FaceProcessor:
         faces, landmarks = process_image(frame)
 
         for i, face in enumerate(faces):
-            try:
-                x_face, y_face, x1_face, y1_face = face[:4].astype(int)
-                face_box = (x_face, y_face, x1_face, y1_face)
+            x_face, y_face, x1_face, y1_face = face[:4].astype(int)
+            face_box = (x_face, y_face, x1_face, y1_face)
 
-                # Match with tracker
-                matched_id = None
-                body_coordinates = None
-                for track in trackers:
-                    x, y, x1, y1, obj_id, _, _ = map(int, track[:7])
-                    matched_id = obj_id
-                    if (x <= x_face <= x1 and y <= y_face <= y1) and (x <= x1_face <= x1 and y <= y1_face <= y1):
-                        body_coordinates = (y, x1, y1, x)  # top, right, bottom, left (same format as face)
-                        break
+            # Match with tracker
+            matched_id = None
+            body_coordinates = None
+            for track in trackers:
+                x, y, x1, y1, obj_id, _, _ = map(int, track[:7])
+                matched_id = obj_id
+                if (x <= x_face <= x1 and y <= y_face <= y1) and (x <= x1_face <= x1 and y <= y1_face <= y1):
+                    body_coordinates = (y, x1, y1, x)  # top, right, bottom, left (same format as face)
+                    break
 
-                # Skip if no matching tracker found
-                if matched_id is None:
-                    # print('Skip ,no matching tracker found')
-                    continue
-
-                # Check if face is visible and frontal
-                visible = False
-                if landmarks is not None and i < len(landmarks):
-                    lm = landmarks[i]
-                    visible = self.is_face_frontal(face[:4], lm)
-
-                # Цвет рамки зависит от типа распознанного человека и видимости
-                color = (0, 255, 0) if visible else (0, 0, 255)  # Зеленый для видимых, красный для невидимых
-
-                # Отрисовка только если output=True
-                if output:
-                    cv2.rectangle(display_frame, (x_face, y_face), (x1_face, y1_face), color, 2)
-
-                    # Draw body rectangle if available
-                    if body_coordinates:
-                        body_top, body_right, body_bottom, body_left = body_coordinates
-                        cv2.rectangle(display_frame, (body_left, body_top), (body_right, body_bottom), (255, 0, 0), 1)
-
-                # Convert face location format for recognition
-                face_location = (y_face, x1_face, y1_face, x_face)  # top, right, bottom, left
-
-                # Initialize face data dictionary
-                face_data = {
-                    "face_location": face_location
-                }
-
-                # Add body coordinates if available
-                if body_coordinates:
-                    face_data["body_top"] = body_coordinates[0]
-                    face_data["body_right"] = body_coordinates[1]
-                    face_data["body_bottom"] = body_coordinates[2]
-                    face_data["body_left"] = body_coordinates[3]
-
-                # Check if we already have metadata for this track_id in our memory cache
-                track_meta = self.db_manager.get_frame_data(matched_id)
-                if track_meta:
-                    # Update only the coordinate-related info and keep other metadata
-                    for key, value in track_meta.items():
-                        if key not in ["face_location", "body_top", "body_right", "body_bottom", "body_left"]:
-                            face_data[key] = value
-
-                    person_type = track_meta.get("person_type", PERSON_TYPE_CUSTOMER)
-
-                    if track_meta.get("name") == 'identifying..':
-                        if visible:
-                            recognition_result = self.recognize_face(frame, face_location)
-                            if recognition_result:
-                                name_new, person_type_new = recognition_result
-                                if matched_id in self.track_metadata:
-                                    del self.track_metadata[matched_id]
-                                self.db_manager.update_by_track_id(matched_id,
-                                                                   {"name": name_new, "person_type": person_type_new})
-                            else:
-                                if matched_id in self.track_metadata:
-                                    self.track_metadata[matched_id] += 1
-                                else:
-                                    self.track_metadata[matched_id] = 1
-                                if self.track_metadata[matched_id] == self.recognition_attempts:
-                                    self.db_manager.update_by_track_id(matched_id, {"name": "unknown"})
-
-                else:
-                    # No cached data, process face if visible
-                    if visible:
-                        # Try to recognize face
-                        recognition_result = self.recognize_face(frame, face_location)
-
-                        # If None is returned, skip this face for now (need more attempts)
-                        if recognition_result[0] is None:
-                            if output:
-                                cv2.putText(display_frame, f"ID: {matched_id} (Identifying...)", (x_face, y_face - 10),
-                                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-
-                            # Save minimal data and continue
-                            face_data["name"] = "identifying..."
-                            self.db_manager.save_frame_data(self.frame_count, matched_id, face_data, visible,
-                                                            PERSON_TYPE_CUSTOMER)
-                            continue
-
-                        name, person_type = recognition_result
-                        face_data["name"] = name
-                        face_data["person_type"] = person_type
-
-                        # Analyze face (age, gender, emotion) only if not already done
-                        age, gender, emotion = self.analyze_face(frame, face_box, matched_id)
-
-                        if age:
-                            face_data["age"] = age
-                        if gender:
-                            face_data["gender"] = gender
-                        if emotion:
-                            face_data["emotion"] = emotion
-
-                        # Save to appropriate tables based on person_type
-                        self.db_manager.save_face_data(self.frame_count, matched_id, face_data)
-                    else:
-                        face_data["name"] = "identifying..."
-                        person_type = PERSON_TYPE_CUSTOMER
-
-                # Always save frame data for each frame
-                self.db_manager.save_frame_data(self.frame_count, matched_id, face_data, visible, person_type)
-
-                # Отображаем информацию о человеке на кадре только если output=True
-                if output:
-                    # Определяем цвет текста в зависимости от типа человека
-                    text_color = {
-                        PERSON_TYPE_CUSTOMER: (255, 255, 255),  # Белый для клиентов
-                        PERSON_TYPE_WAITER: (255, 165, 0),  # Оранжевый для официантов
-                        PERSON_TYPE_CELEBRITY: (255, 0, 255)  # Пурпурный для знаменитостей
-                    }.get(person_type, (255, 255, 255))
-
-                    # Отображаем тип человека и его ID
-                    type_text = {
-                        PERSON_TYPE_CUSTOMER: "Customer",
-                        PERSON_TYPE_WAITER: "Waiter",
-                        PERSON_TYPE_CELEBRITY: "Celebrity"
-                    }.get(person_type, "Unknown")
-
-                    info_text = f"ID: {matched_id} | {face_data.get('name', 'unknown')} | {type_text}"
-                    cv2.putText(display_frame, info_text, (x_face, y_face - 30),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, text_color, 2)
-
-                    if face_data.get("age") and face_data.get("gender") and face_data.get("emotion"):
-                        details_text = f"Age: {face_data.get('age')} | {face_data.get('gender')} | {face_data.get('emotion')}"
-                        cv2.putText(display_frame, details_text, (x_face, y_face - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, text_color, 2)
-                    else:
-                        status = "Not frontal" if not visible else "Analyzing..."
-                        cv2.putText(display_frame, f"Status: {status}", (x_face, y_face - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, text_color, 2)
-            except Exception as e:
-                print(f"Error processing face {i}: {e}")
+            # Skip if no matching tracker found
+            if matched_id is None:
+                # print('Skip ,no matching tracker found')
                 continue
-        # Возвращаем обработанный кадр только если output=True,
-        # иначе возвращаем оригинальный кадр без изменений
-        if output:
-            return display_frame
+
+            # Check if face is visible and frontal
+            visible = False
+            if landmarks is not None and i < len(landmarks):
+                lm = landmarks[i]
+                visible = self.is_face_frontal(face[:4], lm)
+
+            # Convert face location format for recognition
+            face_location = (y_face, x1_face, y1_face, x_face)  # top, right, bottom, left
+
+            # Initialize face data dictionary
+            face_data = {
+                "face_location": face_location
+            }
+
+            # Add body coordinates if available
+            if body_coordinates:
+                face_data["body_top"] = body_coordinates[0]
+                face_data["body_right"] = body_coordinates[1]
+                face_data["body_bottom"] = body_coordinates[2]
+                face_data["body_left"] = body_coordinates[3]
+
+            # Check if we already have metadata for this track_id in our memory cache
+            track_meta = self.db_manager.get_frame_data(matched_id)
+            if track_meta:
+                # Update only the coordinate-related info and keep other metadata
+                for key, value in track_meta.items():
+                    if key not in ["face_location", "body_top", "body_right", "body_bottom", "body_left"]:
+                        face_data[key] = value
+
+                person_type = track_meta.get("person_type", PERSON_TYPE_CUSTOMER)
+
+                if track_meta.get("name") == 'identifying..':
+                    if visible:
+                        recognition_result = self.recognize_face(frame, face_location)
+                        if recognition_result:
+                            name_new, person_type_new = recognition_result
+                            if matched_id in self.track_metadata:
+                                del self.track_metadata[matched_id]
+                            self.db_manager.update_by_track_id(matched_id,
+                                                               {"name": name_new, "person_type": person_type_new})
+                        else:
+                            if matched_id in self.track_metadata:
+                                self.track_metadata[matched_id] += 1
+                            else:
+                                self.track_metadata[matched_id] = 1
+                            if self.track_metadata[matched_id] == self.recognition_attempts:
+                                self.db_manager.update_by_track_id(matched_id, {"name": "unknown"})
+
+            else:
+                # No cached data, process face if visible
+                if visible:
+                    # Try to recognize face
+                    recognition_result = self.recognize_face(frame, face_location)
+
+                    # If None is returned, skip this face for now (need more attempts)
+                    if recognition_result[0] is None:
+                        # Save minimal data and continue
+                        face_data["name"] = "identifying..."
+                        self.db_manager.save_frame_data(self.frame_count, matched_id, face_data, visible,
+                                                        PERSON_TYPE_CUSTOMER)
+                        continue
+
+                    name, person_type = recognition_result
+                    face_data["name"] = name
+                    face_data["person_type"] = person_type
+
+                    # Analyze face (age, gender, emotion) only if not already done
+                    age, gender, emotion = self.analyze_face(frame, face_box, matched_id)
+
+                    if age:
+                        face_data["age"] = age
+                    if gender:
+                        face_data["gender"] = gender
+                    if emotion:
+                        face_data["emotion"] = emotion
+
+                    # Save to appropriate tables based on person_type
+                    self.db_manager.save_face_data(self.frame_count, matched_id, face_data)
+                else:
+                    face_data["name"] = "identifying..."
+                    person_type = PERSON_TYPE_CUSTOMER
+
+            # Always save frame data for each frame
+            self.db_manager.save_frame_data(self.frame_count, matched_id, face_data, visible, person_type)
 
     def load_known_faces_from_directories(self, base_path):
         """
@@ -523,130 +461,30 @@ if __name__ == "__main__":
         port=5432
     )
 
-    # Обновляем структуру базы данных при необходимости
-    # db_manager.update_database_structure()
-
     # Путь к директории с известными лицами
     data_path = "face/model/face_id/data_face/"
 
     # Initialize face processor with 3 recognition attempts
     face_processor = FaceProcessor(db_manager, recognition_attempts=3, data_path=data_path)
 
-    # Open video file or webcam
-    video_source = 'data/test.mp4'
-
-    # Check if the video file exists, otherwise use webcam
-    if os.path.exists(video_source):
-        cap = cv2.VideoCapture(video_source)
-    else:
-        print(f"Video file {video_source} not found, using webcam")
-        cap = cv2.VideoCapture(0)
-
-    # Проверяем, что камера или видео открылись успешно
-    if not cap.isOpened():
-        print("Error: Could not open video source")
-        exit()
-
-    # Параметры записи видео
-    save_output = True
-    if save_output:
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = int(cap.get(cv2.CAP_PROP_FPS))
-
-        # Создаем каталог для выходных файлов, если его нет
-        output_dir = "output"
-        os.makedirs(output_dir, exist_ok=True)
-
-        # Имя выходного файла с временной меткой
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_file = os.path.join(output_dir, f"processed_{timestamp}.mp4")
-
-        # Настраиваем записывающее устройство
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(output_file, fourcc, fps, (width, height))
-
     print("Processing video...")
-    frame_count = 0
 
-    # Информация для отображения статистики
-    stats = {
-        'total_frames': 0,
-        'faces_detected': 0,
-        'customers': 0,
-        'waiters': 0,
-        'celebrities': 0,
-        'unknown': 0
-    }
+    saved_frames = db_manager.get_unprocessed_frames()
+    for saved_frame in saved_frames:
+        frame = cv2.imread(saved_frame['frame_path'])
+        ret = frame is not None
 
-    while True:
-        ret, frame = cap.read()
         if not ret:
             break
 
-        frame_count += 1
-        stats['total_frames'] += 1
-
         # Обрабатываем кадр
-        processed_frame = face_processor.process_frame(frame, output=True)
+        face_processor.process_frame(frame)
 
-        # Обновляем статистику
-        faces_in_frame = len([id for id in face_processor.track_metadata])
-        stats['faces_detected'] += faces_in_frame
+        # Отмечаем обработанные кадры
+        db_manager.mark_frame_as_processed(saved_frame['id'])
 
-        # Подсчитываем количество разных типов людей
-        person_types = []
-        for track_id in face_processor.track_metadata:
-            data = db_manager.get_frame_data(track_id)
-            if data and 'person_type' in data:
-                person_types.append(data['person_type'])
-            else:
-                person_types.append('unknown')
-
-        stats['customers'] = sum(1 for t in person_types if t == PERSON_TYPE_CUSTOMER)
-        stats['waiters'] = sum(1 for t in person_types if t == PERSON_TYPE_WAITER)
-        stats['celebrities'] = sum(1 for t in person_types if t == PERSON_TYPE_CELEBRITY)
-        stats['unknown'] = sum(1 for t in person_types if t == 'unknown')
-        # Добавляем статистику на кадр
-        cv2.putText(processed_frame, f"Frame: {frame_count}", (10, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-        cv2.putText(processed_frame, f"Customers: {stats['customers']}", (10, 60),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-        cv2.putText(processed_frame, f"Waiters: {stats['waiters']}", (10, 90),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 165, 0), 2)
-        cv2.putText(processed_frame, f"Celebrities: {stats['celebrities']}", (10, 120),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2)
-
-        # Отображаем результат
-        cv2.imshow('Restaurant Face Recognition', processed_frame)
-
-        # Записываем в файл, если нужно
-        if save_output:
-            out.write(processed_frame)
 
         # Проверяем нажатие клавиши для выхода
         key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             break
-        elif key == ord('s'):
-            # Сохраняем текущий кадр
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            cv2.imwrite(f"output/screenshot_{timestamp}.jpg", processed_frame)
-            print(f"Screenshot saved as output/screenshot_{timestamp}.jpg")
-
-    # Освобождаем ресурсы
-    cap.release()
-    if save_output:
-        out.release()
-    cv2.destroyAllWindows()
-
-    # Выводим итоговую статистику
-    print("\nProcessing completed!")
-    print(f"Total frames processed: {stats['total_frames']}")
-    print(f"Total faces detected: {stats['faces_detected']}")
-    print(f"Customers identified: {stats['customers']}")
-    print(f"Waiters identified: {stats['waiters']}")
-    print(f"Celebrities identified: {stats['celebrities']}")
-
-    if save_output:
-        print(f"\nProcessed video saved to: {output_file}")

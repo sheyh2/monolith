@@ -108,6 +108,15 @@ class DatabaseManager:
                     )
                 ''')
 
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS frames (
+                        id SERIAL PRIMARY KEY,
+                        frame_path VARCHAR NOT NULL,
+                        processed BOOLEAN NOT NULL,
+                        timestamp TIMESTAMP
+                    )
+                ''')
+
                 conn.commit()
         except Exception as e:
             print(f"Database initialization error: {e}")
@@ -253,7 +262,6 @@ class DatabaseManager:
         finally:
             self.connection_pool.putconn(conn)
 
-
     def get_frame_data(self, track_id):
         """Get stored data for a specific frame and track_id"""
         conn = self.connection_pool.getconn()
@@ -288,6 +296,69 @@ class DatabaseManager:
                 return None
         except Exception as e:
             print(f"Error retrieving frame data: {e}")
+            return None
+        finally:
+            self.connection_pool.putconn(conn)
+
+    def get_unprocessed_frames(self):
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute('''
+                    SELECT id, frame_path, timestamp
+                    FROM frames
+                    WHERE processed = %s
+                ''', (0,))
+
+                result = cursor.fetchall()
+                if result:
+                    return [
+                        {
+                            "id": row[0],
+                            "frame_path": row[1],
+                            "timestamp": row[2],
+                        }
+                        for row in result
+                    ]
+                return []
+        except Exception as e:
+            print(f"Error retrieving frames: {e}")
+            return []
+        finally:
+            self.connection_pool.putconn(conn)
+
+    """Mark a frame as processed in the database"""
+
+    def mark_frame_as_processed(self, frame_id):
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute('''
+                    UPDATE frames
+                    SET processed = %s
+                    WHERE id = %s
+                ''', (1, frame_id))
+                conn.commit()
+        except Exception as e:
+            print(f"Error updating frame status: {e}")
+        finally:
+            self.connection_pool.putconn(conn)
+
+    """Insert a new frame record into the database"""
+    def insert_frame(self, frame_path, timestamp, processed=0):
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute('''
+                    INSERT INTO frames (frame_path, timestamp, processed)
+                    VALUES (%s, %s, %s)
+                    RETURNING id
+                ''', (frame_path, timestamp, processed))
+                frame_id = cursor.fetchone()[0]
+                conn.commit()
+                return frame_id
+        except Exception as e:
+            print(f"Error inserting frame: {e}")
             return None
         finally:
             self.connection_pool.putconn(conn)
