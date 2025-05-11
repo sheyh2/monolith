@@ -149,7 +149,7 @@ if CUDA is not None:
             extra_compile_args={
                 'gcc': ["-Wno-unused-function"],
                 'nvcc': [
-                    '-arch=sm_35', '--ptxas-options=-v', '-c',
+                    '-arch=sm_86', '--ptxas-options=-v', '-c',
                     '--compiler-options', "'-fPIC'"
                 ]
             },

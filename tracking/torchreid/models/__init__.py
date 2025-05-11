@@ -82,7 +82,7 @@ def show_avai_models():
     """Displays available models.
 
     Examples::
-        >>> from torchreid import models
+        >>> from tracking.torchreid import models
         >>> models.show_avai_models()
     """
     print(list(__model_factory.keys()))
@@ -106,7 +106,7 @@ def build_model(
         nn.Module
 
     Examples::
-        >>> from torchreid import models
+        >>> from tracking.torchreid import models
         >>> model = models.build_model('resnet50', 751, loss='softmax')
     """
     avai_models = list(__model_factory.keys())

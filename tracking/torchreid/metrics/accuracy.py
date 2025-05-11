@@ -15,7 +15,7 @@ def accuracy(output, target, topk=(1, )):
         list: accuracy at top-k.
 
     Examples::
-        >>> from torchreid import metrics
+        >>> from tracking.torchreid import metrics
         >>> metrics.accuracy(output, target)
     """
     maxk = max(topk)

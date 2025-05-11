@@ -4,7 +4,7 @@ import numpy as np
 import timeit
 import os.path as osp
 
-from torchreid import metrics
+from tracking.torchreid import metrics
 
 sys.path.insert(0, osp.dirname(osp.abspath(__file__)) + '/../../..')
 """
@@ -24,7 +24,7 @@ import sys
 import os.path as osp
 import numpy as np
 sys.path.insert(0, osp.dirname(osp.abspath(__file__)) + '/../../..')
-from torchreid import metrics
+from tracking.torchreid import metrics
 num_q = 30
 num_g = 300
 max_rank = 5

@@ -6,7 +6,7 @@ GPUID = 0
 MODEL_PATH = 'face/checkpoint/R50/R50'
 # MODEL_PATH = 'checkpoint/R50'
 path = os.path.join(os.getcwd(),MODEL_PATH)
-DETECTOR = RetinaFace(path,0, -1, 'net3')
+DETECTOR = RetinaFace(path,0, GPUID, 'net3')
 
 def process_image(img, thresh=0.8, do_flip=False, image_out=False):
     """

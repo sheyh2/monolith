@@ -20,7 +20,7 @@ class Logger(object):
        >>> import sys
        >>> import os
        >>> import os.path as osp
-       >>> from torchreid.utils import Logger
+       >>> from tracking.torchreid.utils import Logger
        >>> save_dir = 'log/resnet50-softmax-market1501'
        >>> log_name = 'train.log'
        >>> sys.stdout = Logger(osp.join(args.save_dir, log_name))
@@ -69,7 +69,7 @@ class RankLogger(object):
         targets (str or list): target dataset name(s).
 
     Examples::
-        >>> from torchreid.utils import RankLogger
+        >>> from tracking.torchreid.utils import RankLogger
         >>> s = 'market1501'
         >>> t = 'market1501'
         >>> ranklogger = RankLogger(s, t)

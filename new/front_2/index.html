@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Analytics Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <!-- Bootstrap Datepicker -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
+    <!-- Chart.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-dark sidebar collapse">
+                <div class="position-sticky">
+                    <div class="sidebar-header">
+                        <h3 class="text-light p-3 text-center">Restaurant Analytics</h3>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" data-page="dashboard">
+                                <i class="fas fa-tachometer-alt me-2"></i> Обзор
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-page="video-analysis">
+                                <i class="fas fa-video me-2"></i> Видеоанализ
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-page="visitor-analytics">
+                                <i class="fas fa-users me-2"></i> Аналитика посетителей
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-page="staff-performance">
+                                <i class="fas fa-user-tie me-2"></i> Эффективность персонала
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-page="special-reports">
+                                <i class="fas fa-chart-pie me-2"></i> Специальные отчеты
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <!-- Top bar with filters -->
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2" id="page-title">Обзор</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="input-group me-2">
+                            <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                            <input type="text" class="form-control" id="date-range-picker" placeholder="Выберите период">
+                        </div>
+                        <div class="btn-group me-2">
+                            <select class="form-select" id="person-type-filter">
+                                <option value="all" selected>Все</option>
+                                <option value="customer">Клиенты</option>
+                                <option value="waiter">Официанты</option>
+                                <option value="celebrity">Знаменитости</option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary" id="apply-filters">
+                            <i class="fas fa-filter me-1"></i> Применить
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Page content containers -->
+                <div id="page-dashboard" class="page-content">
+                    <!-- Dashboard page content will be loaded here -->
+                    <div class="row mb-4">
+                        <!-- KPI Cards -->
+                        <div class="col-md-3 mb-4">
+                            <div class="card bg-primary text-white h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Всего посетителей</h5>
+                                    <h2 class="display-4" id="total-visitors">0</h2>
+                                    <p class="card-text">За выбранный период</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card bg-success text-white h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Уникальных посетителей</h5>
+                                    <h2 class="display-4" id="unique-visitors">0</h2>
+                                    <p class="card-text">За выбранный период</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card bg-info text-white h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Средний возраст</h5>
+                                    <h2 class="display-4" id="avg-age">0</h2>
+                                    <p class="card-text">Всех посетителей</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-4">
+                            <div class="card bg-warning text-white h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Частая эмоция</h5>
+                                    <h2 class="display-4" id="common-emotion">-</h2>
+                                    <p class="card-text">За выбранный период</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <!-- Charts -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Тренд посетителей</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="visitors-trend-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Распределение эмоций</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="emotions-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Пиковые часы</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="peak-hours-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Демографические данные</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="demographics-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="page-video-analysis" class="page-content d-none">
+                    <!-- Video Analysis page content -->
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Видеоанализ</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="video-upload" class="form-label">Загрузить видео для анализа</label>
+                                        <input class="form-control" type="file" id="video-upload" accept="video/*">
+                                    </div>
+                                    <div class="position-relative">
+                                        <video id="video-player" class="w-100" controls></video>
+                                        <canvas id="video-canvas" class="position-absolute top-0 start-0 w-100 h-100"></canvas>
+                                    </div>
+                                    <div class="progress mt-3">
+                                        <div id="processing-progress" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-2">
+                                        <span>Обработано кадров: <span id="processed-frames">0</span>/<span id="total-frames">0</span></span>
+                                        <span>Статус: <span id="processing-status">Готов к загрузке</span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Данные текущего кадра</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Кадр №: <span id="current-frame-id">0</span></label>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Распознанных лиц: <span id="faces-in-frame">0</span></label>
+                                    </div>
+                                    <div id="faces-list" class="list-group">
+                                        <!-- Faces data will be displayed here -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Статистика до текущего кадра</h5>
+                                </div>
+                                <div class="card-body">
+                                    <ul class="list-group">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Всего посетителей
+                                            <span id="frame-total-visitors" class="badge bg-primary rounded-pill">0</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Уникальных посетителей
+                                            <span id="frame-unique-visitors" class="badge bg-primary rounded-pill">0</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Официантов
+                                            <span id="frame-waiters" class="badge bg-primary rounded-pill">0</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            Знаменитостей
+                                            <span id="frame-celebrities" class="badge bg-primary rounded-pill">0</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Лог обработки</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="processing-log" class="bg-dark text-light p-3" style="height: 200px; overflow-y: auto;">
+                                        <!-- Processing log will be displayed here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="page-visitor-analytics" class="page-content d-none">
+                    <!-- Visitor Analytics page content -->
+                    <ul class="nav nav-tabs mb-4" id="visitorTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="demographics-tab" data-bs-toggle="tab" data-bs-target="#demographics" type="button" role="tab" aria-controls="demographics" aria-selected="true">Демография</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="trends-tab" data-bs-toggle="tab" data-bs-target="#trends" type="button" role="tab" aria-controls="trends" aria-selected="false">Тренды</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="top-visitors-tab" data-bs-toggle="tab" data-bs-target="#top-visitors" type="button" role="tab" aria-controls="top-visitors" aria-selected="false">Топ посетители</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="visit-duration-tab" data-bs-toggle="tab" data-bs-target="#visit-duration" type="button" role="tab" aria-controls="visit-duration" aria-selected="false">Длительность визитов</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="peak-hours-tab" data-bs-toggle="tab" data-bs-target="#peak-hours" type="button" role="tab" aria-controls="peak-hours" aria-selected="false">Пиковые часы</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="visitorTabsContent">
+                        <div class="tab-pane fade show active" id="demographics" role="tabpanel" aria-labelledby="demographics-tab">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card mb-4">
+                                        <div class="card-header">
+                                            <h5 class="card-title mb-0">Распределение по возрасту</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <canvas id="age-distribution-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card mb-4">
+                                        <div class="card-header">
+                                            <h5 class="card-title mb-0">Распределение по полу</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <canvas id="gender-distribution-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="trends" role="tabpanel" aria-labelledby="trends-tab">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Тренды посещений</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="visitor-trends-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="top-visitors" role="tabpanel" aria-labelledby="top-visitors-tab">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Топ посетители по частоте</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>ID</th>
+                                                    <th>Имя</th>
+                                                    <th>Тип</th>
+                                                    <th>Количество посещений</th>
+                                                    <th>Последнее посещение</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="top-visitors-table">
+                                                <!-- Top visitors data will be displayed here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="visit-duration" role="tabpanel" aria-labelledby="visit-duration-tab">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Распределение длительности визитов</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="visit-duration-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="peak-hours" role="tabpanel" aria-labelledby="peak-hours-tab">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Пиковые часы посещений</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="peak-hours-detailed-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="page-staff-performance" class="page-content d-none">
+                    <!-- Staff Performance page content -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Эффективность официантов</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>ID</th>
+                                                    <th>Имя</th>
+                                                    <th>Обслужено клиентов</th>
+                                                    <th>Рабочие часы</th>
+                                                    <th>Клиентов в час</th>
+                                                    <th>Преобладающие эмоции клиентов</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="waiters-table">
+                                                <!-- Waiters data will be displayed here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Распределение нагрузки по официантам</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="waiter-load-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Сравнение эффективности официантов</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="waiter-efficiency-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="page-special-reports" class="page-content d-none">
+                    <!-- Special Reports page content -->
+                    <ul class="nav nav-tabs mb-4" id="specialReportsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="celebrity-impact-tab" data-bs-toggle="tab" data-bs-target="#celebrity-impact" type="button" role="tab" aria-controls="celebrity-impact" aria-selected="true">Влияние знаменитостей</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="satisfaction-correlation-tab" data-bs-toggle="tab" data-bs-target="#satisfaction-correlation" type="button" role="tab" aria-controls="satisfaction-correlation" aria-selected="false">Корреляция с удовлетворенностью</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="period-comparison-tab" data-bs-toggle="tab" data-bs-target="#period-comparison" type="button" role="tab" aria-controls="period-comparison" aria-selected="false">Сравнение периодов</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="specialReportsTabsContent">
+                        <div class="tab-pane fade show active" id="celebrity-impact" role="tabpanel" aria-labelledby="celebrity-impact-tab">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card mb-4">
+                                        <div class="card-header">
+                                            <h5 class="card-title mb-0">Влияние знаменитостей на посещаемость</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <canvas id="celebrity-impact-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card mb-4">
+                                        <div class="card-header">
+                                            <h5 class="card-title mb-0">Список визитов знаменитостей</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-striped">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Дата</th>
+                                                            <th>Знаменитость</th>
+                                                            <th>Время пребывания</th>
+                                                            <th>Посетителей за период</th>
+                                                            <th>Прирост (%)</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="celebrity-visits-table">
+                                                        <!-- Celebrity visits data will be displayed here -->
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="satisfaction-correlation" role="tabpanel" aria-labelledby="satisfaction-correlation-tab">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Корреляция эмоций посетителей с отзывами</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="satisfaction-correlation-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="period-comparison" role="tabpanel" aria-labelledby="period-comparison-tab">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Сравнение периодов</h5>
+                                    <div class="mt-3">
+                                        <div class="row">
+                                            <div class="col-md-5">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">Период 1</span>
+                                                    <input type="text" class="form-control" id="period-1-date-range" placeholder="Выберите период">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-5">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">Период 2</span>
+                                                    <input type="text" class="form-control" id="period-2-date-range" placeholder="Выберите период">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="button" class="btn btn-primary w-100" id="compare-periods">Сравнить</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="period-comparison-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <!-- jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Moment.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <!-- Bootstrap Datepicker -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/main.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/video-analysis.js"></script>
+    <script src="js/visitor-analytics.js"></script>
+    <script src="js/staff-performance.js"></script>
+    <script src="js/special-reports.js"></script>
+</body>
+</html>

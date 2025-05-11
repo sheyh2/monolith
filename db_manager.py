@@ -308,7 +308,7 @@ class DatabaseManager:
                     SELECT id, frame_path, timestamp
                     FROM frames
                     WHERE processed = %s
-                ''', (0,))
+                ''', (False,))
 
                 result = cursor.fetchall()
                 if result:
@@ -337,7 +337,7 @@ class DatabaseManager:
                     UPDATE frames
                     SET processed = %s
                     WHERE id = %s
-                ''', (1, frame_id))
+                ''', (True, frame_id))
                 conn.commit()
         except Exception as e:
             print(f"Error updating frame status: {e}")
@@ -345,7 +345,7 @@ class DatabaseManager:
             self.connection_pool.putconn(conn)
 
     """Insert a new frame record into the database"""
-    def insert_frame(self, frame_path, timestamp, processed=0):
+    def insert_frame(self, frame_path, timestamp, processed=False):
         conn = self.connection_pool.getconn()
         try:
             with conn.cursor() as cursor:

@@ -71,7 +71,7 @@ def load_checkpoint(fpath):
         dict
 
     Examples::
-        >>> from torchreid.utils import load_checkpoint
+        >>> from tracking.torchreid.utils import load_checkpoint
         >>> fpath = 'log/my_model/model.pth.tar-10'
         >>> checkpoint = load_checkpoint(fpath)
     """
@@ -111,7 +111,7 @@ def resume_from_checkpoint(fpath, model, optimizer=None, scheduler=None):
         int: start_epoch.
 
     Examples::
-        >>> from torchreid.utils import resume_from_checkpoint
+        >>> from tracking.torchreid.utils import resume_from_checkpoint
         >>> fpath = 'log/my_model/model.pth.tar-10'
         >>> start_epoch = resume_from_checkpoint(
         >>>     fpath, model, optimizer, scheduler
@@ -173,7 +173,7 @@ def open_all_layers(model):
     r"""Opens all layers in model for training.
 
     Examples::
-        >>> from torchreid.utils import open_all_layers
+        >>> from tracking.torchreid.utils import open_all_layers
         >>> open_all_layers(model)
     """
     model.train()
@@ -190,7 +190,7 @@ def open_specified_layers(model, open_layers):
         open_layers (str or list): layers open for training.
 
     Examples::
-        >>> from torchreid.utils import open_specified_layers
+        >>> from tracking.torchreid.utils import open_specified_layers
         >>> # Only model.classifier will be updated.
         >>> open_layers = 'classifier'
         >>> open_specified_layers(model, open_layers)
@@ -229,7 +229,7 @@ def count_num_param(model):
         model (nn.Module): network model.
 
     Examples::
-        >>> from torchreid.utils import count_num_param
+        >>> from tracking.torchreid.utils import count_num_param
         >>> model_size = count_num_param(model)
 
     .. warning::
@@ -266,7 +266,7 @@ def load_pretrained_weights(model, weight_path):
         weight_path (str): path to pretrained weights.
 
     Examples::
-        >>> from torchreid.utils import load_pretrained_weights
+        >>> from tracking.torchreid.utils import load_pretrained_weights
         >>> weight_path = 'log/my_model/model-best.pth.tar'
         >>> load_pretrained_weights(model, weight_path)
     """

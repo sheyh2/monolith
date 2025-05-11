@@ -36,7 +36,7 @@ class FeatureExtractor(object):
 
     Examples::
 
-        from torchreid.utils import FeatureExtractor
+        from tracking.torchreid.utils import FeatureExtractor
 
         extractor = FeatureExtractor(
             model_name='osnet_x1_0',
