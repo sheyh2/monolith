@@ -176,3 +176,4 @@ data
 face/checkpoint
 face/model/retinaface/model
 weights
+loaded_frames
