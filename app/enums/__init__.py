@@ -89,5 +89,10 @@ class CocoClass(int, Enum):
     HAIR_DRIER = 78
     TOOTHBRUSH = 79
 
+    @classmethod
+    def from_value(cls, value: int):
+        return cls(value)
+
+
 # Mapping from COCO class IDs to names
 COCO_NAMES = {item.value: item.name.lower().replace('_', ' ') for item in CocoClass}

@@ -291,7 +291,7 @@ class FaceProcessor:
                 face_data["body_left"] = body_coordinates[3]
 
             # Check if we already have metadata for this track_id in our memory cache
-            track_meta = self.repos["person_detection"].get_face_data(matched_id)
+            track_meta = self.repos["person_detection"].get_face_metadata(matched_id)
             if track_meta:
                 # Update only the coordinate-related info and keep other metadata
                 for key, value in track_meta.items():

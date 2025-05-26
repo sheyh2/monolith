@@ -1,9 +1,10 @@
 from sqlalchemy.orm import Session
 from datetime import datetime
 import numpy as np
-from typing import Dict, List, Optional, Tuple, Union, Any
+from typing import Dict, List, Optional, Tuple, Union, Any, Type
 from app import models
 from app.enums import PersonType
+from app.models import PersonDetection, ObjectDetection
 
 
 class PersonDetectionRepository:
@@ -16,9 +17,9 @@ class PersonDetectionRepository:
         """Get a person detection by ID"""
         return self.db.query(models.PersonDetection).filter(models.PersonDetection.id == id).first()
 
-    def get_by_track_id(self, track_id: int) -> List[models.PersonDetection]:
+    def get_by_track_id(self, track_id: int) -> list[Type[PersonDetection]]:
         """Get all person detections by track ID"""
-        return self.db.query(models.PersonDetection).filter(models.PersonDetection.track_id == track_id).all()
+        return self.db.query(models.PersonDetection).filter_by(track_id=track_id).all()
 
     def save_face_data(self, frame_id: int, track_id: int, face_data: Dict[str, Any]) -> models.PersonDetection:
         """Save face data for a detected person"""
@@ -182,9 +183,9 @@ class ObjectDetectionRepository:
             self.db.rollback()
             raise e
 
-    def get_by_frame_id(self, frame_id: int) -> List[models.ObjectDetection]:
+    def get_by_frame_id(self, frame_id: int) -> list[Type[ObjectDetection]]:
         """Get all object detections for a specific frame"""
-        return self.db.query(models.ObjectDetection).filter(models.ObjectDetection.frame_id == frame_id).all()
+        return self.db.query(models.ObjectDetection).filter_by(frame_id=frame_id).all()
 
 
 class RegisteredPersonRepository:
@@ -309,7 +310,7 @@ class PersonTrackingDataRepository:
 
     def get_by_frame_id(self, frame_id: int) -> List[models.PersonTrackingData]:
         """Get all person tracking data for a specific frame"""
-        return self.db.query(models.PersonTrackingData).filter(models.PersonTrackingData.frame_id == frame_id).all()
+        return self.db.query(models.PersonTrackingData).filter_by(frame_id=frame_id).all()
 
 
 class VideoFrameRepository:

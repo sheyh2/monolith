@@ -11,8 +11,8 @@ class PersonDetection(Base):
     __tablename__ = "person_detections"
 
     id = Column(Integer, primary_key=True, index=True)
-    track_id = Column(Integer, nullable=False)
     frame_id = Column(Integer, nullable=False)
+    track_id = Column(Integer, nullable=False)
     name = Column(String)
     age = Column(Integer)
     gender = Column(String)
